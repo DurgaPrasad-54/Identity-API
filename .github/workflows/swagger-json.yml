@@ -67,17 +67,18 @@ jobs:
       - name: Stop API
         if: always()
         run: |
-          # Graceful shutdown of the process group
-          sleep 5
-          # Force kill the process group if still running
-          if [ -f api_pid.txt ]; then
+            # Attempt graceful shutdown by PID
+            if [ -f api_pid.txt ]; then
               PID=$(cat api_pid.txt)
-              kill -TERM -- -"$PID" 2>/dev/null || true
+              kill -TERM "$PID" 2>/dev/null || true
               sleep 2
-              kill -9 -- -"$PID" 2>/dev/null || true
+              kill -9 "$PID" 2>/dev/null || true
             fi
-            # Fallback: kill any remaining java process on port 9090
+            # Fallback: kill whatever is listening on port 9090
             fuser -k 9090/tcp 2>/dev/null || true
+            sleep 2
+            # Force-kill if still lingering
+            fuser -k -KILL 9090/tcp 2>/dev/null || true
 
       - name: Checkout AMRIT-Docs
         uses: actions/checkout@v4
