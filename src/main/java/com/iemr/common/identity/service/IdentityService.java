@@ -799,6 +799,12 @@ private Map<String, Object> convertBeneficiaryDTOToMap(BeneficiariesDTO dto) {
         return beneficiaryList;
     }
 
+
+    public RMNCHBeneficiaryDetailsRmnch getRmnchDataByBenID(BigInteger benID) {
+
+        return rMNCHBeneficiaryDetailsRmnchRepo.getByRegID(benID);
+    }
+
     public Long countBeneficiaryByVillageIdAndLastModifyDate(List<Integer> villageIDs, Timestamp lastModifiedDate) {
         Long beneficiaryCount = 0L;
         try {
