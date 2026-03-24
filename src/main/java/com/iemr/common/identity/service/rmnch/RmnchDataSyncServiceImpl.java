@@ -115,7 +115,6 @@ public class RmnchDataSyncServiceImpl implements RmnchDataSyncService {
 	private RMNCHBenContactRepo rMNCHBenContactRepo;
 	@Autowired
 	private RMNCHMBenRegIdMapRepo rMNCHMBenRegIdMapRepo;
-
 	@Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
 	@Override
 	public String syncDataToAmrit(String requestOBJ) throws Exception {
@@ -273,6 +272,7 @@ public class RmnchDataSyncServiceImpl implements RmnchDataSyncService {
 	}
 
 
+
 	@Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
 	public String saveBeneficiaryDetailsAfterRegistration(
 			Long beneficiaryID,
@@ -282,19 +282,30 @@ public class RmnchDataSyncServiceImpl implements RmnchDataSyncService {
 		try {
 			JsonObject requestObj = new Gson().fromJson(comingRequest, JsonObject.class);
 
+			// ✅ use find instead of get
 			RMNCHBeneficiaryDetailsRmnch entity =
 					rMNCHBeneficiaryDetailsRmnchRepo.getByRegID(BigInteger.valueOf(beneficiaryRegID));
 
+			boolean isNew = false;
+
 			if (entity == null) {
 				entity = new RMNCHBeneficiaryDetailsRmnch();
+				isNew = true;
 			}
 
 			String createdBy = getString(requestObj, "createdBy", "system");
 
 			entity.setBenficieryid(BigInteger.valueOf(beneficiaryID));
 			entity.setBenRegId(BigInteger.valueOf(beneficiaryRegID));
-			entity.setCreatedBy(createdBy);
-			entity.setCreatedDate(new Timestamp(System.currentTimeMillis()));
+
+			// ✅ Only set created fields for new record
+			if (isNew) {
+				entity.setCreatedBy(createdBy);
+				entity.setCreatedDate(new Timestamp(System.currentTimeMillis()));
+			} else {
+				entity.setUpdatedBy(createdBy);
+				entity.setUpdatedDate(new Timestamp(System.currentTimeMillis()));
+			}
 
 			entity.setVanID(getInt(requestObj, "vanID", null));
 			entity.setParkingPlaceID(getInt(requestObj, "parkingPlaceID", null));
@@ -317,7 +328,7 @@ public class RmnchDataSyncServiceImpl implements RmnchDataSyncService {
 			entity.setMaritalstatusId(getInt(requestObj, "maritalStatusID", null));
 			entity.setMaritalstatus(getString(requestObj, "maritalStatusName", null));
 
-			// DOB (String → Timestamp)
+			// DOB
 			if (requestObj.has("dOB") && !requestObj.get("dOB").isJsonNull()) {
 				entity.setDob(Timestamp.valueOf(
 						requestObj.get("dOB").getAsString().replace("T", " ").replace("Z", "")
